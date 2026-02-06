@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <title>Permainan Condong Kepala - Menghargai Raja</title>
+
+  <!-- Panggil MediaPipe Face Mesh -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f6ff;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #1f3c88;
+    }
+
+    video {
+      width: 320px;
+      height: 240px;
+      border-radius: 10px;
+      border: 3px solid #333;
+      margin-top: 10px;
+    }
+
+    .kad {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px auto;
+      max-width: 420px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      font-size: 20px;
+    }
+
+    .maklum {
+      font-size: 22px;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    .betul {
+      color: green;
+    }
+
+    .salah {
+      color: red;
+    }
+
+    .huraian {
+      font-size: 16px;
+      margin-top: 10px;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+
+<h1>👑 Menghargai Raja/Sultan</h1>
+
+<p>
+⬅️ Condong KIRI = Kepentingan<br>
+➡️ Condong KANAN = Bukan Kepentingan
+</p>
+
+<video id="video" autoplay muted></video>
+
+<div class="kad" id="soalan"></div>
+<div class="maklum" id="maklumBalas"></div>
+<div class="huraian" id="huraian"></div>
+
+<script>
+  // ================================
+  // SENARAI SOALAN PERMAINAN
+  // ================================
+  const soalan = [
+    { teks: "Raja menyatukan rakyat 🤝", jawapan: "KIRI", huraian: "Raja membantu rakyat hidup bersatu." },
+    { teks: "Raja untuk kemewahan diri", jawapan: "KANAN", huraian: "Raja bukan untuk kepentingan diri." },
+    { teks: "Raja lambang kedaulatan 🇲🇾", jawapan: "KIRI", huraian: "Raja mewakili identiti negara." },
+    { teks: "Raja kebal undang-undang", jawapan: "KANAN", huraian: "Semua orang tertakluk kepada undang-undang." },
+    { teks: "Raja ketua agama Islam ☪️", jawapan: "KIRI", huraian: "Raja menjaga hal ehwal Islam." }
+  ];
+
+  let indeks = 0;
+  let sudahJawab = false;
+
+  const soalanEl = document.getElementById("soalan");
+  const maklumEl = document.getElementById("maklumBalas");
+  const huraianEl = document.getElementById("huraian");
+
+  soalanEl.textContent = soalan[indeks].teks;
+
+  // ================================
+  // TETAPAN MEDIAPIPE
+  // ================================
+  const video = document.getElementById("video");
+
+  const faceMesh = new FaceMesh({
+    locateFile: (file) =>
+      `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+  });
+
+  faceMesh.setOptions({
+    maxNumFaces: 1
+  });
+
+  faceMesh.onResults(keputusanWajah);
+
+  const kamera = new Camera(video, {
+    onFrame: async () => {
+      await faceMesh.send({ image: video });
+    },
+    width: 320,
+    height: 240
+  });
+
+  kamera.start();
+
+  // ================================
+  // FUNGSI KESAN CONDONG KEPALA
+  // ================================
+  function keputusanWajah(hasil) {
+    if (!hasil.multiFaceLandmarks || sudahJawab) return;
+
+    const titik = hasil.multiFaceLandmarks[0];
+    const hidung = titik[1]; // titik hidung
+
+    const tengah = 0.5;
+    const toleransi = 0.03;
+
+    if (hidung.x < tengah - toleransi) {
+      semakJawapan("KIRI");
+    } else if (hidung.x > tengah + toleransi) {
+      semakJawapan("KANAN");
+    }
+  }
+
+  // ================================
+  // SEMAK JAWAPAN MURID
+  // ================================
+  function semakJawapan(arah) {
+    sudahJawab = true;
+
+    if (arah === soalan[indeks].jawapan) {
+      maklumEl.textContent = "✅ Betul!";
+      maklumEl.className = "maklum betul";
+    } else {
+      maklumEl.textContent = "❌ Cuba Lagi";
+      maklumEl.className = "maklum salah";
+    }
+
+    huraianEl.textContent = soalan[indeks].huraian;
+
+    setTimeout(() => {
+      indeks = (indeks + 1) % soalan.length;
+      soalanEl.textContent = soalan[indeks].teks;
+      maklumEl.textContent = "";
+      huraianEl.textContent = "";
+      sudahJawab = false;
+    }, 3000);
+  }
+</script>
+
+</body>
+</html>
